@@ -5,6 +5,7 @@ import tensorflow as tf
 import tools
 import IPython
 import random
+import skimage.measure
 
 GPU0 = '0'
 
@@ -16,6 +17,8 @@ def get_iou(arr1, arr2):
 
     return float(np.sum(inter)) / np.sum(union)
 
+def np_maxpool(arr):
+    return skimage.measure.block_reduce(arr, (1,1,4,4,4,1), np.mean)
 
 class Model:
     def __init__(self):
@@ -56,15 +59,18 @@ class Model:
         #                                                    self.Y_pred_128],
         #                                                   feed_dict={self.X: x_sample})
         y_pred = self.sess.run([self.Y_pred], feed_dict={self.X: x_sample})
-        iou = get(y_pred_256, y_true)
-        # iou_256 = get_iou(y_pred_256, y_true)
-        # IPython.embed()
-        # iou_128 = get_iou(y_pred_128, y_true[::2, ::2, ::2, :])
-        # iou_64 = get_iou(y_pred_64, y_true[::4, ::4, ::4, :])
-        
-        # print "iou_256", iou_256
-        # print "iou_128", iou_128
-        # print "iou_64", iou_64
+
+
+        iou = get_iou(y_pred, y_true)
+
+        # y_pred_64 = np_maxpool(np.array(y_pred))
+
+        # iou_baseline = get_iou(y_pred_64, np.array(x_sample))
+
+        print "iou", iou
+        # print "iou_baseline", iou_baseline
+
+        # IPython.embed()                        
         return iou
 
 
