@@ -16,6 +16,7 @@ import random
 from skimage.measure import block_reduce
 import threading
 import sys
+import IPython
 if sys.version_info >=(2,0):
     print (sys.version)
     import Queue as queue
@@ -135,7 +136,13 @@ class Data(threading.Thread):
             exit()
 
         #Data.plotFromVoxels(voxel_grid)
+        if voxel_grid.shape[0] == 64:
+            return voxel_grid
+        
         voxel_grid = Data.voxel_grid_padding(voxel_grid)
+        # IPython.embed()
+
+
 
         ## downsample
         if out_vox_res < 256:

@@ -15,10 +15,11 @@ def get_iou(arr1, arr2):
     inter = np.logical_and(arr1 > 0.5, arr2 > 0.5)
     union = np.logical_or(arr1 > 0.5, arr2 > 0.5)
 
+
     return float(np.sum(inter)) / np.sum(union)
 
-def np_maxpool(arr):
-    return skimage.measure.block_reduce(arr, (1,1,4,4,4,1), np.mean)
+def pool(arr, d=4):
+    return skimage.measure.block_reduce(arr, (1,1,d,d,d,1), np.mean)
 
 class Model:
     def __init__(self):
@@ -38,8 +39,8 @@ class Model:
         print ('model restored!')
         self.X = tf.get_default_graph().get_tensor_by_name("Placeholder:0")
         self.Y_pred = tf.get_default_graph().get_tensor_by_name("aeu/Sigmoid:0")
-        self.Y_pred_64 = tf.get_default_graph().get_tensor_by_name("aeu/conv3d_transpose_3:0")
-        self.Y_pred_128 = tf.get_default_graph().get_tensor_by_name("aeu/conv3d_transpose_4:0")
+        # self.Y_pred_64 = tf.get_default_graph().get_tensor_by_name("aeu/conv3d_transpose_3:0")
+        # self.Y_pred_128 = tf.get_default_graph().get_tensor_by_name("aeu/conv3d_transpose_4:0")
 
     
         
@@ -61,17 +62,23 @@ class Model:
         y_pred = self.sess.run([self.Y_pred], feed_dict={self.X: x_sample})
 
 
-        iou = get_iou(y_pred, y_true)
+        iou = get_iou(np.array(y_pred), np.array(y_true))
 
-        # y_pred_64 = np_maxpool(np.array(y_pred))
 
-        # iou_baseline = get_iou(y_pred_64, np.array(x_sample))
+        # IPython.embed()
+        y_true_expanded = np.expand_dims(y_true,0)
+        y_true_expanded = np.expand_dims(y_true_expanded,0)
+        y_true_64 = pool(y_true_expanded)
 
-        print "iou", iou
+        iou_baseline = get_iou(y_true_64, np.array(x_sample))
+        # IPython.embed()
+
+        # IPython.embed()
+        # print "iou", iou
         # print "iou_baseline", iou_baseline
 
         # IPython.embed()                        
-        return iou
+        return iou, iou_baseline
 
 
         ###### save result
@@ -95,21 +102,26 @@ class Model:
             views = fileparts[2]
 
         ious = []
+        ious_baseline = []
 
-        for i in range(50):
+        for i in range(10):
             item = random.choice(views)
             x_path = "./Data_sample/" + cat + "/test_25d_vox256/" + item
             y_true_path = "./Data_sample/" + cat + "/test_3d_vox256/" + item
-        
-            ious.append(self.iou_single_eval(x_path, y_true_path))
 
-        print "Results for", cat, 
-        print ": iou mean: ", np.mean(ious), u'\u00B1', np.std(ious)
+            iou, iou_baseline = self.iou_single_eval(x_path, y_true_path)
+            ious.append(iou)
+            ious_baseline.append(iou_baseline)
+
+        print "Results for", cat
+        print "iou  mean: ", np.mean(ious), u'\u00B1', np.std(ious)
+        print "base mean: ", np.mean(ious_baseline), u'\u00B1', np.std(ious_baseline)
         # IPython.embed()
         # IPython.embed()
 
     def iou_eval_all_cat(self):
-        cats = ['P1_02828884_bench','P1_03001627_chair','P1_04256520_coach', 'P1_04379243_table']
+        # cats = ['P1_02828884_bench','P1_03001627_chair','P1_04256520_coach', 'P1_04379243_table']
+        cats = ['051_large_clamp']
 
         for cat in cats:
             self.iou_eval(cat)
@@ -137,5 +149,11 @@ def visualize():
 if __name__ == '__main__':
     m = Model()
     m.iou_eval_all_cat()
+    
+    
 
 
+    # x_path = './Data_sample/051_large_clamp/test_25d_vox256/_3_4_6_.npz'
+    # y_true_path = './Data_sample/051_large_clamp/test_3d_vox256/_3_4_6_.npz'
+    # iou, iou_baseline = m.iou_single_eval(x_path, y_true_path)
+    # print iou, iou_baseline

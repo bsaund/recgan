@@ -4,10 +4,11 @@ import numpy as np
 import scipy.io
 import tensorflow as tf
 import tools
+import IPython
 
 vox_res64 = 64
 vox_rex256 = 256
-batch_size = 4
+batch_size = 3
 GPU0 = '0'
 re_train=False
 
@@ -16,12 +17,16 @@ config={}
 config['batch_size']=batch_size
 config['vox_res_x'] = vox_res64
 config['vox_res_y'] = vox_rex256
-config['train_names']=['P1_02828884_bench','P1_03001627_chair','P1_04256520_coach', 'P1_04379243_table']
+# config['train_names']=['P1_02828884_bench','P1_03001627_chair','P1_04256520_coach', 'P1_04379243_table']
+config['train_names']=['P1_02828884_bench']
+
 for name in config['train_names']:
     config['X_train_'+name] = './Data_sample/'+name+'/train_25d_vox256/'
     config['Y_train_'+name] = './Data_sample/'+name+'/train_3d_vox256/'
 
-config['test_names']=['P1_02828884_bench','P1_03001627_chair','P1_04256520_coach', 'P1_04379243_table']
+# config['test_names']=['P1_02828884_bench','P1_03001627_chair','P1_04256520_coach', 'P1_04379243_table']
+config['test_names']=['P1_02828884_bench']
+
 for name in config['test_names']:
     config['X_test_'+name]= './Data_sample/'+name+'/test_25d_vox256/'
     config['Y_test_'+name]= './Data_sample/'+name+'/test_3d_vox256/'
@@ -167,7 +172,7 @@ class Network:
             Y_pred_modi_ = tf.reshape(self.Y_pred_modi, shape=[-1, vox_rex256**3])
             w = 0.85
             self.aeu_loss = tf.reduce_mean(-tf.reduce_mean(w * Y_ * tf.log(Y_pred_modi_ + 1e-8), reduction_indices=[1]) -
-                                       tf.reduce_mean((1 - w) * (1 - Y_) * tf.log(1 - Y_pred_modi_ + 1e-8), reduction_indices=[1]))
+                                           tf.reduce_mean((1 - w) * (1 - Y_) * tf.log(1 - Y_pred_modi_ + 1e-8), reduction_indices=[1]))
             sum_aeu_loss = tf.summary.scalar('aeu_loss', self.aeu_loss)
 
             ################################ wgan loss
@@ -198,8 +203,14 @@ class Network:
             dis_var = [var for var in tf.trainable_variables() if var.name.startswith('dis')]
             self.aeu_g_optim = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.9, beta2=0.999, epsilon=1e-8).\
                             minimize(self.aeu_gan_g_loss, var_list=aeu_var)
-            self.dis_optim = tf.train.AdamOptimizer(learning_rate=0.00005, beta1=0.9, beta2=0.999, epsilon=1e-8).\
+
+            ##################################################
+            #######   INTENTIONALLY WRONG LEARNING RATE  #####
+            ##################################################
+            self.dis_optim = tf.train.AdamOptimizer(learning_rate=0.0005, beta1=0.9, beta2=0.999, epsilon=1e-8).\
                             minimize(self.gan_d_loss_gp,var_list=dis_var)
+            # self.dis_optim = tf.train.AdamOptimizer(learning_rate=0.00005, beta1=0.9, beta2=0.999, epsilon=1e-8).\
+            #                 minimize(self.gan_d_loss_gp,var_list=dis_var)
 
         print (tools.Ops.variable_count())
         self.sum_merged = tf.summary.merge_all()
@@ -273,6 +284,7 @@ class Network:
 #########################
 if __name__ == '__main__':
     data = tools.Data(config)
+    # IPython.embed()
     data.daemon = True
     data.start()
     net = Network()
